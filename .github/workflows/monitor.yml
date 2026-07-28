@@ -28,11 +28,13 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
-      - name: Persist alert state
+      - run: python3 dashboard_data.py
+
+      - name: Persist state and dashboard data
         run: |
           git config user.name "mm2-monitor-bot"
           git config user.email "actions@users.noreply.github.com"
-          git diff --quiet state.json && exit 0
-          git add state.json
-          git commit -m "Update alert state [skip ci]"
+          git add state.json docs/data.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Update alert state and dashboard data [skip ci]"
           git push

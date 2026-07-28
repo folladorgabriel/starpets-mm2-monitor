@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MM2 Price Monitor — StarPets</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8eb;
+    --text-dim: #9aa1ac;
+    --accent: #5b8cff;
+    --good: #34c77b;
+    --great: #f2b84b;
+    --deal: #ff5d7a;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f6f8;
+      --panel: #ffffff;
+      --panel-2: #eef0f3;
+      --border: #dfe3e8;
+      --text: #1c1f26;
+      --text-dim: #666e7a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 12px;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 1.25rem; margin: 0; }
+  header .updated { color: var(--text-dim); font-size: 0.85rem; }
+  main { padding: 20px 24px 48px; max-width: 1200px; margin: 0 auto; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .stat .label { color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat .value { font-size: 1.4rem; font-weight: 600; margin-top: 2px; }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 7px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+  input[type="search"], select {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+  input[type="search"] { flex: 1; min-width: 160px; }
+  label.checkline { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-dim); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 10px; overflow: hidden; }
+  thead th {
+    text-align: left;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.88rem; vertical-align: middle; }
+  tbody tr:hover { background: var(--panel-2); }
+  tbody tr:last-child td { border-bottom: none; }
+  .item-cell { display: flex; align-items: center; gap: 10px; }
+  .item-cell img { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: var(--panel-2); }
+  .rarity {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--panel-2);
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .discount { font-weight: 600; }
+  .discount.great { color: var(--deal); }
+  .discount.good { color: var(--great); }
+  .discount.mild { color: var(--good); }
+  .discount.none { color: var(--text-dim); font-weight: 400; }
+  .empty { text-align: center; padding: 40px; color: var(--text-dim); }
+  footer { text-align: center; color: var(--text-dim); font-size: 0.78rem; padding: 24px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>MM2 Price Monitor — StarPets</h1>
+  <div class="updated" id="updated">carregando…</div>
+</header>
+<main>
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-type="weapon">Armas</div>
+      <div class="tab" data-type="pet">Pets</div>
+      <div class="tab" data-type="misc">Diversos</div>
+    </div>
+    <input type="search" id="search" placeholder="Buscar item..." />
+    <select id="sort">
+      <option value="discount-desc">Maior desconto</option>
+      <option value="price-asc">Menor preço</option>
+      <option value="price-desc">Maior preço</option>
+      <option value="name-asc">Nome (A-Z)</option>
+    </select>
+    <label class="checkline"><input type="checkbox" id="onlyDeals" /> Só pechinchas (≥35%)</label>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Preço</th>
+        <th>Média mercado</th>
+        <th>Desconto</th>
+        <th>Raridade</th>
+        <th>Ano</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="empty" id="empty" style="display:none">Nenhum item encontrado.</div>
+</main>
+<footer>
+  Dados de <a href="https://starpets.gg/pt/mm2" target="_blank" rel="noopener">starpets.gg/pt/mm2</a>,
+  atualizados a cada 5 minutos via GitHub Actions.
+</footer>
+
+<script>
+let dataset = { items: {} };
+let activeType = "weapon";
+
+function fmt(n) { return "$" + Number(n).toFixed(2); }
+
+function discountClass(d) {
+  if (d >= 0.5) return "great";
+  if (d >= 0.35) return "good";
+  if (d > 0) return "mild";
+  return "none";
+}
+
+function render() {
+  const items = (dataset.items[activeType] || []).slice();
+  const search = document.getElementById("search").value.trim().toLowerCase();
+  const onlyDeals = document.getElementById("onlyDeals").checked;
+  const sortMode = document.getElementById("sort").value;
+
+  let filtered = items.filter(it => {
+    if (!it.avgPrice || it.avgPrice <= 0) return false;
+    if (!it.price || it.price <= 0) return false;
+    if (search && !it.name.toLowerCase().includes(search)) return false;
+    const discount = (it.avgPrice - it.price) / it.avgPrice;
+    if (onlyDeals && discount < 0.35) return false;
+    return true;
+  });
+
+  filtered.forEach(it => { it._discount = (it.avgPrice - it.price) / it.avgPrice; });
+
+  const sorters = {
+    "discount-desc": (a, b) => b._discount - a._discount,
+    "price-asc": (a, b) => a.price - b.price,
+    "price-desc": (a, b) => b.price - a.price,
+    "name-asc": (a, b) => a.name.localeCompare(b.name),
+  };
+  filtered.sort(sorters[sortMode]);
+
+  const rowsEl = document.getElementById("rows");
+  const emptyEl = document.getElementById("empty");
+  rowsEl.innerHTML = "";
+
+  if (filtered.length === 0) {
+    emptyEl.style.display = "block";
+  } else {
+    emptyEl.style.display = "none";
+    for (const it of filtered) {
+      const tr = document.createElement("tr");
+      const dPct = (it._discount * 100).toFixed(0);
+      const dCls = discountClass(it._discount);
+      tr.innerHTML = `
+        <td><div class="item-cell"><img src="${it.imageUri || ''}" loading="lazy" alt=""><span>${it.name}</span></div></td>
+        <td>${fmt(it.price)}</td>
+        <td>${fmt(it.avgPrice)}</td>
+        <td class="discount ${dCls}">${it._discount > 0 ? dPct + "%" : "—"}</td>
+        <td><span class="rarity">${it.rare || "?"}</span></td>
+        <td>${it.year || "—"}</td>
+      `;
+      rowsEl.appendChild(tr);
+    }
+  }
+
+  renderStats(items);
+}
+
+function renderStats(items) {
+  const valid = items.filter(it => it.avgPrice > 0 && it.price > 0);
+  const avgPrice = valid.length ? valid.reduce((s, it) => s + it.price, 0) / valid.length : 0;
+  const deals = valid.filter(it => (it.avgPrice - it.price) / it.avgPrice >= 0.35).length;
+  const bestDeal = valid.slice().sort((a, b) => ((b.avgPrice - b.price) / b.avgPrice) - ((a.avgPrice - a.price) / a.avgPrice))[0];
+
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="label">Itens listados</div><div class="value">${items.length}</div></div>
+    <div class="stat"><div class="label">Preço médio</div><div class="value">${fmt(avgPrice)}</div></div>
+    <div class="stat"><div class="label">Pechinchas (≥35%)</div><div class="value">${deals}</div></div>
+    <div class="stat"><div class="label">Melhor achado</div><div class="value">${bestDeal ? bestDeal.name : "—"}</div></div>
+  `;
+}
+
+async function loadData() {
+  try {
+    const res = await fetch("data.json?_=" + Date.now());
+    dataset = await res.json();
+    const d = new Date(dataset.updatedAt);
+    document.getElementById("updated").textContent = "Atualizado em " + d.toLocaleString("pt-BR");
+    render();
+  } catch (e) {
+    document.getElementById("updated").textContent = "Falha ao carregar dados";
+  }
+}
+
+document.getElementById("tabs").addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (!tab) return;
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+  activeType = tab.dataset.type;
+  render();
+});
+document.getElementById("search").addEventListener("input", render);
+document.getElementById("sort").addEventListener("change", render);
+document.getElementById("onlyDeals").addEventListener("change", render);
+
+loadData();
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
