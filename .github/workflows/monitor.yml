@@ -34,7 +34,7 @@ jobs:
         run: |
           git config user.name "mm2-monitor-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add state.json docs/data.json
+          git add state.json docs/data.json docs/history.json docs/alerts_log.json
           git diff --cached --quiet && exit 0
           git commit -m "Update alert state and dashboard data [skip ci]"
           git push

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MM2 Price Monitor — StarPets</title>
 <style>
-  :root {
+  :root[data-theme="dark"], :root {
     --bg: #0f1115;
     --panel: #171a21;
     --panel-2: #1e222b;
@@ -16,6 +16,7 @@
     --good: #34c77b;
     --great: #f2b84b;
     --deal: #ff5d7a;
+    --star: #f2b84b;
   }
   @media (prefers-color-scheme: light) {
     :root {
@@ -26,6 +27,14 @@
       --text: #1c1f26;
       --text-dim: #666e7a;
     }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --panel-2: #eef0f3;
+    --border: #dfe3e8;
+    --text: #1c1f26;
+    --text-dim: #666e7a;
   }
   * { box-sizing: border-box; }
   body {
@@ -40,19 +49,30 @@
     border-bottom: 1px solid var(--border);
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: 12px;
     justify-content: space-between;
   }
   header h1 { font-size: 1.25rem; margin: 0; }
+  header .right { display: flex; align-items: center; gap: 12px; }
   header .updated { color: var(--text-dim); font-size: 0.85rem; }
+  .icon-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
   main { padding: 20px 24px 48px; max-width: 1200px; margin: 0 auto; }
 
   .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   .stat {
     background: var(--panel);
@@ -62,6 +82,46 @@
   }
   .stat .label { color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
   .stat .value { font-size: 1.4rem; font-weight: 600; margin-top: 2px; }
+
+  .section-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    margin: 22px 0 10px;
+  }
+
+  .trend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .trend-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .trend-card .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .trend-card .name { font-size: 0.8rem; color: var(--text-dim); }
+  .trend-card .now { font-weight: 600; }
+  .trend-card svg { width: 100%; height: 40px; display: block; }
+
+  .alerts-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+  .alert-card {
+    flex: 0 0 auto;
+    width: 190px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .alert-card .row { display: flex; align-items: center; gap: 8px; }
+  .alert-card img { width: 28px; height: 28px; object-fit: contain; border-radius: 6px; background: var(--panel-2); }
+  .alert-card .name { font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .alert-card .meta { color: var(--text-dim); font-size: 0.72rem; margin-top: 6px; }
+  .alert-card .disc { color: var(--deal); font-weight: 600; }
 
   .controls {
     display: flex;
@@ -90,7 +150,17 @@
     font-size: 0.85rem;
   }
   input[type="search"] { flex: 1; min-width: 160px; }
-  label.checkline { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-dim); }
+  label.checkline { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-dim); white-space: nowrap; }
+  button.action {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  button.action:hover { background: var(--panel-2); }
 
   table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 10px; overflow: hidden; }
   thead th {
@@ -101,7 +171,6 @@
     color: var(--text-dim);
     padding: 10px 12px;
     border-bottom: 1px solid var(--border);
-    cursor: pointer;
     white-space: nowrap;
   }
   tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.88rem; vertical-align: middle; }
@@ -109,7 +178,9 @@
   tbody tr:last-child td { border-bottom: none; }
   .item-cell { display: flex; align-items: center; gap: 10px; }
   .item-cell img { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: var(--panel-2); }
-  .rarity {
+  .star-btn { background: none; border: none; cursor: pointer; font-size: 1rem; color: var(--border); padding: 0 4px; }
+  .star-btn.active { color: var(--star); }
+  .rarity, .cat-badge {
     font-size: 0.72rem;
     padding: 2px 8px;
     border-radius: 999px;
@@ -130,18 +201,31 @@
 <body>
 <header>
   <h1>MM2 Price Monitor — StarPets</h1>
-  <div class="updated" id="updated">carregando…</div>
+  <div class="right">
+    <div class="updated" id="updated">carregando…</div>
+    <button class="icon-btn" id="themeToggle" title="Alternar tema">🌙</button>
+  </div>
 </header>
 <main>
   <div class="stats" id="stats"></div>
 
-  <div class="controls">
+  <div class="section-title">Tendência de preço médio (últimas horas)</div>
+  <div class="trend-grid" id="trends"></div>
+
+  <div class="section-title">Alertas recentes</div>
+  <div class="alerts-scroll" id="alertsFeed"><span class="empty" style="padding:10px">Nenhum alerta ainda.</span></div>
+
+  <div class="controls" style="margin-top:22px">
     <div class="tabs" id="tabs">
       <div class="tab active" data-type="weapon">Armas</div>
       <div class="tab" data-type="pet">Pets</div>
       <div class="tab" data-type="misc">Diversos</div>
+      <div class="tab" data-type="all">Todos</div>
     </div>
     <input type="search" id="search" placeholder="Buscar item..." />
+    <select id="rarityFilter">
+      <option value="">Todas raridades</option>
+    </select>
     <select id="sort">
       <option value="discount-desc">Maior desconto</option>
       <option value="price-asc">Menor preço</option>
@@ -150,16 +234,20 @@
     </select>
     <label class="checkline"><input type="checkbox" id="onlyDeals" /> Só pechinchas (≥35%)</label>
     <label class="checkline"><input type="checkbox" id="onlyGodly" /> Só Godly $4+</label>
+    <label class="checkline"><input type="checkbox" id="onlyFavorites" /> ★ Favoritos</label>
+    <button class="action" id="exportCsv">Exportar CSV</button>
   </div>
 
   <table>
     <thead>
       <tr>
+        <th></th>
         <th>Item</th>
         <th>Preço</th>
         <th>Média mercado</th>
         <th>Desconto</th>
         <th>Raridade</th>
+        <th id="catHeader" style="display:none">Categoria</th>
         <th>Ano</th>
       </tr>
     </thead>
@@ -174,9 +262,21 @@
 
 <script>
 let dataset = { items: {} };
+let historyData = [];
+let alertsData = [];
 let activeType = "weapon";
+const CAT_LABELS = { weapon: "Armas", pet: "Pets", misc: "Diversos" };
+const FAV_KEY = "mm2_favorites";
 
 function fmt(n) { return "$" + Number(n).toFixed(2); }
+
+function timeAgo(ts) {
+  const diffMin = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  if (diffMin < 1) return "agora";
+  if (diffMin < 60) return diffMin + " min atrás";
+  const h = Math.round(diffMin / 60);
+  return h + "h atrás";
+}
 
 function discountClass(d) {
   if (d >= 0.5) return "great";
@@ -185,17 +285,50 @@ function discountClass(d) {
   return "none";
 }
 
+function getFavorites() {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || "[]")); }
+  catch (e) { return new Set(); }
+}
+function saveFavorites(set) {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...set]));
+}
+function favKey(it) { return `${it.type}:${it.goodId}`; }
+
+function itemsForActiveType() {
+  if (activeType === "all") {
+    return Object.entries(dataset.items).flatMap(([type, arr]) => arr);
+  }
+  return dataset.items[activeType] || [];
+}
+
+function populateRarityOptions(items) {
+  const sel = document.getElementById("rarityFilter");
+  const current = sel.value;
+  const rarities = [...new Set(items.map(it => it.rare).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todas raridades</option>' +
+    rarities.map(r => `<option value="${r}">${r}</option>`).join("");
+  if (rarities.includes(current)) sel.value = current;
+}
+
 function render() {
-  const items = (dataset.items[activeType] || []).slice();
+  const items = itemsForActiveType();
+  document.getElementById("catHeader").style.display = activeType === "all" ? "" : "none";
+  populateRarityOptions(items);
+
   const search = document.getElementById("search").value.trim().toLowerCase();
   const onlyDeals = document.getElementById("onlyDeals").checked;
   const onlyGodly = document.getElementById("onlyGodly").checked;
+  const onlyFavorites = document.getElementById("onlyFavorites").checked;
+  const rarity = document.getElementById("rarityFilter").value;
   const sortMode = document.getElementById("sort").value;
+  const favorites = getFavorites();
 
   let filtered = items.filter(it => {
     if (!it.avgPrice || it.avgPrice <= 0) return false;
     if (!it.price || it.price <= 0) return false;
     if (search && !it.name.toLowerCase().includes(search)) return false;
+    if (rarity && it.rare !== rarity) return false;
+    if (onlyFavorites && !favorites.has(favKey(it))) return false;
     const discount = (it.avgPrice - it.price) / it.avgPrice;
     if (onlyDeals && discount < 0.35) return false;
     if (onlyGodly && !(it.rare === "godly" && it.price >= 4)) return false;
@@ -224,12 +357,16 @@ function render() {
       const tr = document.createElement("tr");
       const dPct = (it._discount * 100).toFixed(0);
       const dCls = discountClass(it._discount);
+      const key = favKey(it);
+      const isFav = favorites.has(key);
       tr.innerHTML = `
+        <td><button class="star-btn ${isFav ? "active" : ""}" data-key="${key}">${isFav ? "★" : "☆"}</button></td>
         <td><div class="item-cell"><img src="${it.imageUri || ''}" loading="lazy" alt=""><span>${it.name}</span></div></td>
         <td>${fmt(it.price)}</td>
         <td>${fmt(it.avgPrice)}</td>
         <td class="discount ${dCls}">${it._discount > 0 ? dPct + "%" : "—"}</td>
         <td><span class="rarity">${it.rare || "?"}</span></td>
+        <td style="display:${activeType === "all" ? "" : "none"}"><span class="cat-badge">${CAT_LABELS[it.type] || it.type}</span></td>
         <td>${it.year || "—"}</td>
       `;
       rowsEl.appendChild(tr);
@@ -237,6 +374,7 @@ function render() {
   }
 
   renderStats(items);
+  window._lastFiltered = filtered;
 }
 
 function renderStats(items) {
@@ -253,13 +391,95 @@ function renderStats(items) {
   `;
 }
 
+function sparklinePath(values, w, h) {
+  if (values.length < 2) return "";
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max - min) || 1;
+  const step = w / (values.length - 1);
+  return values.map((v, i) => {
+    const x = i * step;
+    const y = h - ((v - min) / range) * h;
+    return (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
+}
+
+function renderTrends() {
+  const el = document.getElementById("trends");
+  if (!historyData.length) { el.innerHTML = ""; return; }
+  el.innerHTML = Object.keys(CAT_LABELS).map(type => {
+    const values = historyData.map(h => (h[type] && h[type].avgPrice) || 0).filter(v => v >= 0);
+    const last = values[values.length - 1] || 0;
+    const path = sparklinePath(values.slice(-100), 200, 36);
+    return `
+      <div class="trend-card">
+        <div class="top"><span class="name">${CAT_LABELS[type]}</span><span class="now">${fmt(last)}</span></div>
+        <svg viewBox="0 0 200 36" preserveAspectRatio="none">
+          <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2" />
+        </svg>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderAlerts() {
+  const el = document.getElementById("alertsFeed");
+  if (!alertsData.length) {
+    el.innerHTML = '<span class="empty" style="padding:10px">Nenhum alerta ainda.</span>';
+    return;
+  }
+  const recent = alertsData.slice().reverse().slice(0, 20);
+  el.innerHTML = recent.map(a => `
+    <div class="alert-card">
+      <div class="row">
+        <img src="${a.imageUri || ''}" alt="" loading="lazy">
+        <span class="name">${a.name}</span>
+      </div>
+      <div class="meta">${fmt(a.price)} <span class="disc">-${Math.round(a.discount * 100)}%</span></div>
+      <div class="meta">${CAT_LABELS[a.type] || a.type} · ${timeAgo(a.t)}</div>
+    </div>
+  `).join("");
+}
+
+function exportCsv() {
+  const rows = window._lastFiltered || [];
+  const header = ["name", "type", "rare", "year", "price", "avgPrice", "discountPct"];
+  const lines = [header.join(",")];
+  for (const it of rows) {
+    lines.push([
+      `"${(it.name || "").replace(/"/g, '""')}"`,
+      it.type || "",
+      it.rare || "",
+      it.year || "",
+      it.price,
+      it.avgPrice,
+      (it._discount * 100).toFixed(1),
+    ].join(","));
+  }
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mm2-precos-${activeType}-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function loadData() {
   try {
-    const res = await fetch("data.json?_=" + Date.now());
-    dataset = await res.json();
+    const [dataRes, historyRes, alertsRes] = await Promise.all([
+      fetch("data.json?_=" + Date.now()),
+      fetch("history.json?_=" + Date.now()).catch(() => null),
+      fetch("alerts_log.json?_=" + Date.now()).catch(() => null),
+    ]);
+    dataset = await dataRes.json();
+    historyData = historyRes && historyRes.ok ? await historyRes.json() : [];
+    alertsData = alertsRes && alertsRes.ok ? await alertsRes.json() : [];
+
     const d = new Date(dataset.updatedAt);
     document.getElementById("updated").textContent = "Atualizado em " + d.toLocaleString("pt-BR");
     render();
+    renderTrends();
+    renderAlerts();
   } catch (e) {
     document.getElementById("updated").textContent = "Falha ao carregar dados";
   }
@@ -275,11 +495,40 @@ document.getElementById("tabs").addEventListener("click", (e) => {
 });
 document.getElementById("search").addEventListener("input", render);
 document.getElementById("sort").addEventListener("change", render);
+document.getElementById("rarityFilter").addEventListener("change", render);
 document.getElementById("onlyDeals").addEventListener("change", render);
 document.getElementById("onlyGodly").addEventListener("change", render);
+document.getElementById("onlyFavorites").addEventListener("change", render);
+document.getElementById("exportCsv").addEventListener("click", exportCsv);
+document.getElementById("rows").addEventListener("click", (e) => {
+  const btn = e.target.closest(".star-btn");
+  if (!btn) return;
+  const favorites = getFavorites();
+  const key = btn.dataset.key;
+  if (favorites.has(key)) favorites.delete(key); else favorites.add(key);
+  saveFavorites(favorites);
+  render();
+});
+
+function applyTheme(theme) {
+  if (theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("mm2_theme", theme);
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    localStorage.removeItem("mm2_theme");
+  }
+  document.getElementById("themeToggle").textContent = theme === "light" ? "☀️" : theme === "dark" ? "🌙" : "🖥️";
+}
+document.getElementById("themeToggle").addEventListener("click", () => {
+  const current = localStorage.getItem("mm2_theme") || "";
+  const next = current === "" ? "dark" : current === "dark" ? "light" : "";
+  applyTheme(next);
+});
+applyTheme(localStorage.getItem("mm2_theme") || "");
 
 loadData();
-setInterval(loadData, 60000);
+setInterval(loadData, 600000);
 </script>
 </body>
 </html>

@@ -10,11 +10,13 @@ API_URL = "https://mm2-market.apineural.com/api/v2/store/items/all"
 DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK"]
 DISCOUNT_THRESHOLD = 0.5
 MIN_PRICE = 4.0
-ITEM_TYPE = "weapon"
+ITEM_TYPES = ["weapon", "pet", "misc"]
 PAGE_SIZE = 72
 EMBEDS_PER_MESSAGE = 10
 DISCORD_MENTION = "<@1443748218843168839>"
 STATE_FILE = Path(__file__).parent / "state.json"
+ALERTS_LOG_FILE = Path(__file__).parent / "docs" / "alerts_log.json"
+ALERTS_LOG_MAX = 200
 HEADERS = {"accept": "application/json", "content-type": "application/json"}
 
 RARITY_COLORS = {
@@ -32,7 +34,7 @@ RARITY_COLORS = {
 }
 
 
-def fetch_all_items():
+def fetch_type(item_type):
     items = []
     page = 1
     while True:
@@ -40,7 +42,7 @@ def fetch_all_items():
             "currency": "usd",
             "page": page,
             "amount": PAGE_SIZE,
-            "filter": {"types": [{"type": ITEM_TYPE}]},
+            "filter": {"types": [{"type": item_type}]},
             "sort": {"popularity": "desc"},
         }
         resp = requests.post(API_URL, json=body, headers=HEADERS, timeout=15)
@@ -55,14 +57,22 @@ def fetch_all_items():
     return items
 
 
-def load_state():
-    if STATE_FILE.exists():
-        return json.loads(STATE_FILE.read_text())
-    return {}
+def fetch_all_items():
+    items = []
+    for item_type in ITEM_TYPES:
+        items.extend(fetch_type(item_type))
+    return items
 
 
-def save_state(state):
-    STATE_FILE.write_text(json.dumps(state))
+def load_json(path, default):
+    if path.exists():
+        return json.loads(path.read_text())
+    return default
+
+
+def save_json(path, data):
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps(data))
 
 
 def build_embed(item, discount):
@@ -76,6 +86,7 @@ def build_embed(item, discount):
             {"name": "Preço", "value": f"${item['price']:.2f}", "inline": True},
             {"name": "Média de mercado", "value": f"${item['avgPrice']:.2f}", "inline": True},
             {"name": "Raridade", "value": item.get("rare", "?"), "inline": True},
+            {"name": "Categoria", "value": item.get("type", "?"), "inline": True},
         ],
     }
 
@@ -99,8 +110,26 @@ def send_discord_batch(embeds):
         time.sleep(1)
 
 
+def log_alerts(new_alerts):
+    log = load_json(ALERTS_LOG_FILE, [])
+    now = int(time.time() * 1000)
+    for item, discount in new_alerts:
+        log.append({
+            "t": now,
+            "name": item["name"],
+            "type": item.get("type", "?"),
+            "rare": item.get("rare", "?"),
+            "price": item["price"],
+            "avgPrice": item["avgPrice"],
+            "discount": round(discount, 4),
+            "imageUri": item.get("imageUri", ""),
+        })
+    log = log[-ALERTS_LOG_MAX:]
+    save_json(ALERTS_LOG_FILE, log)
+
+
 def main():
-    state = load_state()
+    state = load_json(STATE_FILE, {})
     items = fetch_all_items()
     seen_ids = set()
     new_alerts = []
@@ -112,7 +141,8 @@ def main():
         if not good_id or not price or not avg_price or avg_price <= 0:
             continue
 
-        seen_ids.add(good_id)
+        key = f"{item.get('type', '?')}:{good_id}"
+        seen_ids.add(key)
         if price < MIN_PRICE:
             continue
 
@@ -120,23 +150,24 @@ def main():
         if discount < DISCOUNT_THRESHOLD:
             continue
 
-        already_alerted_at = state.get(good_id)
+        already_alerted_at = state.get(key)
         if already_alerted_at is not None and already_alerted_at <= price:
             continue
 
         new_alerts.append((item, discount))
-        state[good_id] = price
+        state[key] = price
 
     if new_alerts:
         try:
             embeds = [build_embed(item, discount) for item, discount in new_alerts]
             send_discord_batch(embeds)
+            log_alerts(new_alerts)
         except requests.RequestException as exc:
             print(f"Falha ao notificar Discord: {exc}", file=sys.stderr)
             new_alerts = []
 
-    state = {gid: p for gid, p in state.items() if gid in seen_ids}
-    save_state(state)
+    state = {k: p for k, p in state.items() if k in seen_ids}
+    save_json(STATE_FILE, state)
     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {len(items)} itens verificados, {len(new_alerts)} alerta(s) enviado(s)")
 
 
