@@ -1,0 +1,38 @@
+name: StarPets MM2 price monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mm2-monitor
+  cancel-in-progress: false
+
+jobs:
+  check-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - run: pip install -r requirements.txt
+
+      - run: python3 monitor.py
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Persist alert state
+        run: |
+          git config user.name "mm2-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git diff --quiet state.json && exit 0
+          git add state.json
+          git commit -m "Update alert state [skip ci]"
+          git push
