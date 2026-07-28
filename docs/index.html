@@ -149,6 +149,7 @@
       <option value="name-asc">Nome (A-Z)</option>
     </select>
     <label class="checkline"><input type="checkbox" id="onlyDeals" /> Só pechinchas (≥35%)</label>
+    <label class="checkline"><input type="checkbox" id="onlyGodly" /> Só Godly $4+</label>
   </div>
 
   <table>
@@ -188,6 +189,7 @@ function render() {
   const items = (dataset.items[activeType] || []).slice();
   const search = document.getElementById("search").value.trim().toLowerCase();
   const onlyDeals = document.getElementById("onlyDeals").checked;
+  const onlyGodly = document.getElementById("onlyGodly").checked;
   const sortMode = document.getElementById("sort").value;
 
   let filtered = items.filter(it => {
@@ -196,6 +198,7 @@ function render() {
     if (search && !it.name.toLowerCase().includes(search)) return false;
     const discount = (it.avgPrice - it.price) / it.avgPrice;
     if (onlyDeals && discount < 0.35) return false;
+    if (onlyGodly && !(it.rare === "godly" && it.price >= 4)) return false;
     return true;
   });
 
@@ -273,6 +276,7 @@ document.getElementById("tabs").addEventListener("click", (e) => {
 document.getElementById("search").addEventListener("input", render);
 document.getElementById("sort").addEventListener("change", render);
 document.getElementById("onlyDeals").addEventListener("change", render);
+document.getElementById("onlyGodly").addEventListener("change", render);
 
 loadData();
 setInterval(loadData, 60000);
